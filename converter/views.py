@@ -54,3 +54,5 @@ def convert_currency(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+# pip install googletrans==4.0.0-rc1 forex-python
