@@ -102,7 +102,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
+    <!-- <script>
         // Translation form handler
         document.getElementById('translationForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -177,6 +177,113 @@
                 }
             })
             .catch(error => {
+                document.getElementById('currencyResult').innerHTML = 
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        });
+    </script> -->
+    <script>
+        // Get CSRF token function
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+    
+        // Translation form handler
+        document.getElementById('translationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const text = document.getElementById('textToTranslate').value;
+            const srcLang = document.getElementById('sourceLanguage').value;
+            const destLang = document.getElementById('targetLanguage').value;
+            
+            fetch('/translate/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: new URLSearchParams({
+                    'text': text,
+                    'src_lang': srcLang,
+                    'dest_lang': destLang
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('translationResult').innerHTML = 
+                        `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    document.getElementById('translationResult').innerHTML = `
+                        <p><strong>Original (${data.source_language}):</strong> ${data.original_text}</p>
+                        <p><strong>Translation (${data.destination_language}):</strong> ${data.translated_text}</p>
+                        ${data.pronunciation !== 'Not available' ? 
+                            `<p><strong>Pronunciation:</strong> ${data.pronunciation}</p>` : ''}
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('translationResult').innerHTML = 
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        });
+        
+        // Currency form handler
+        document.getElementById('currencyForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const amount = document.getElementById('amount').value;
+            const fromCurrency = document.getElementById('fromCurrency').value;
+            const toCurrency = document.getElementById('toCurrency').value;
+            
+            console.log('Sending currency conversion request:', {amount, fromCurrency, toCurrency});
+            
+            fetch('/convert-currency/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrftoken
+                },
+                body: new URLSearchParams({
+                    'amount': amount,
+                    'from_currency': fromCurrency,
+                    'to_currency': toCurrency
+                })
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Received data:', data);
+                if (data.error) {
+                    document.getElementById('currencyResult').innerHTML = 
+                        `<div class="alert alert-danger">${data.error}</div>`;
+                } else {
+                    document.getElementById('currencyResult').innerHTML = `
+                        <p><strong>Original:</strong> ${data.original_amount}</p>
+                        <p><strong>Converted:</strong> ${data.converted_amount}</p>
+                        <p><strong>Rate:</strong> 1 ${data.from_currency} = ${data.rate.toFixed(6)} ${data.to_currency}</p>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
                 document.getElementById('currencyResult').innerHTML = 
                     `<div class="alert alert-danger">Error: ${error.message}</div>`;
             });
